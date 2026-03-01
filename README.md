@@ -1,12 +1,50 @@
 # ScaleBook Backend
 
-ScaleBook is a backend application designed to manage user data and operations for the ScaleBook platform. This project uses **Node.js** and various libraries to provide a scalable and efficient solution for the system.
+Node.js + Express + PostgreSQL backend with a feature-based structure.
 
-## Features
+## Setup
 
-- User authentication and management
-- Data storage and retrieval
-- API endpoints for frontend communication
-- Secure and efficient backend architecture
+1. Install dependencies:
+   ```bash
+   npm install
+   ```
 
-## Installation
+2. Copy `.env` and set your PostgreSQL credentials:
+   - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD`
+
+3. Create the database (in psql or pgAdmin):
+   ```sql
+   CREATE DATABASE scalebook;
+   ```
+
+4. Run migrations:
+   ```bash
+   npm run migrate
+   ```
+
+5. (Optional) Run seeds:
+   ```bash
+   npm run seed
+   ```
+
+## Scripts
+
+- `npm start` — Start the server
+- `npm run migrate` — Run database migrations
+- `npm run seed` — Run seed file
+
+## Structure
+
+- `src/config/database.js` — PostgreSQL pool connection
+- `src/modules/auth/` — Auth feature (controller, service, routes)
+- `src/app.js` — Express app and routes
+- `src/server.js` — Server entry point
+- `database/migrations/` — SQL migration files
+- `database/schema/` — Schema reference
+- `database/seed/` — Seed SQL
+- `scripts/` — migrate.js, seed.js
+
+## API
+
+- `GET /health` — Health check
+- `GET /api/auth/users` — List users (after migration)
