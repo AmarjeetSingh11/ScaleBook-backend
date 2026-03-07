@@ -153,4 +153,107 @@ export async function loginUser(userData, deviceToken) {
     client.release();
   }
 }
+export async function logoutUser(deviceToken) {
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const sessionResult = await client.query(
+      'SELECT id FROM sessions WHERE device_token = $1',
+      [deviceToken]
+    );
+
+    if (sessionResult.rows.length === 0) {
+      throw ApiError.notFound('Session not found');
+    }
+
+    await client.query(
+      'DELETE FROM sessions WHERE device_token = $1',
+      [deviceToken]
+    );
+
+    await client.query(
+      'DELETE FROM refresh_tokens WHERE device_token = $1',
+      [deviceToken]
+    );
+
+    await client.query('COMMIT');
+
+    return { success: true };
+
+  } catch (error) {
+    await client.query('ROLLBACK');
+
+    console.error('Logout error:', error);
+
+    if (error instanceof ApiError) {
+      throw error;
+    }
+
+    throw ApiError.internal('Something went wrong.');
+  } finally {
+    client.release();
+  }
+}
+export async function refreshToken(refreshToken){
+  if (!refreshToken) {
+    throw ApiError.badRequest('Refresh token is required');
+  }
+
+  let payload;
+
+  try {
+    payload = jwt.verify(refreshToken, process.env.JWT_SECRET_REFRESH);
+  } catch {
+    throw ApiError.unauthorized('Invalid or expired refresh token');
+  }
+
+  const tokenResult = await pool.query(
+    'SELECT id, user_id FROM refresh_tokens WHERE token = $1',
+    [refreshToken]
+  );
+
+  if (tokenResult.rows.length === 0) {
+    throw ApiError.unauthorized('Refresh token not recognized');
+  }
+
+  const userResult = await pool.query(
+    'SELECT id, email, name FROM users WHERE id = $1',
+    [payload.sub]
+  );
+
+  if (userResult.rows.length === 0) {
+    throw ApiError.unauthorized('User not found');
+  }
+
+  const user = userResult.rows[0];
+
+  const accessToken = jwt.sign(
+    { sub: user.id, email: user.email },
+    process.env.JWT_SECRET,
+    { expiresIn: '1h' }
+  );
+
+  const newRefreshToken = jwt.sign(
+    { sub: user.id },
+    process.env.JWT_SECRET_REFRESH,
+    { expiresIn: '7d' }
+  );
+
+  await pool.query(
+    'DELETE FROM refresh_tokens WHERE token = $1',
+    [refreshToken]
+  );
+
+  await pool.query(
+    'INSERT INTO refresh_tokens (user_id, token, expires_at) VALUES ($1,$2,$3)',
+    [user.id, newRefreshToken, new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)]
+  );
+
+  return {
+    accessToken,
+    newRefreshToken
+  };
+}
 
