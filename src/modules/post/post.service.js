@@ -23,15 +23,41 @@ export async function editPost(userId,postId,data){
     }
     return result.rows[0];
 }
-export async function getPost(userId){
-    const result = await pool.query(
-        `SELECT * FROM posts WHERE posted_by_user_id = $1`,
-        [userId]
-    );
-    if(result.rowCount === 0){
-        throw ApiError.notFound('No posts found');
+export async function getPostsByUser(userId, lastCursor) {
+    const limit = 10;
+
+    let query = `
+        SELECT * FROM posts
+        WHERE posted_by_user_id = $1
+    `;
+
+    const values = [userId];
+
+    if (lastCursor) {
+        query += `
+            AND created_at < $2
+        `;
+        values.push(new Date(lastCursor));
     }
-    return result.rows;
+
+    query += `
+        ORDER BY created_at DESC
+        LIMIT $${values.length + 1}
+    `;
+
+    values.push(limit + 1); // fetch extra to check hasMore
+
+    const result = await pool.query(query, values);
+
+    const hasMore = result.rows.length > limit;
+
+    const posts = hasMore ? result.rows.slice(0, limit) : result.rows;
+
+    return {
+        posts,
+        hasMore,
+        nextCursor: posts.length ? posts[posts.length - 1].created_at : null
+    };
 }
 export async function deletePost(userId,postId){
     const result = await pool.query(
@@ -42,4 +68,32 @@ export async function deletePost(userId,postId){
         throw ApiError.notFound('Failed to delete post');
     }
     return { success: true };
+}
+export async function getAllPosts(lastCursor) {
+    const limit = 10;
+
+    let query = `SELECT * FROM posts`;
+    const values = [];
+
+    if (lastCursor) {
+        query += ` WHERE created_at < $1`;
+        values.push(new Date(lastCursor));
+    }
+
+    query += ` ORDER BY created_at DESC LIMIT $${values.length + 1}`;
+    values.push(limit + 1);
+
+    const result = await pool.query(query, values);
+
+    const hasMore = result.rows.length > limit;
+
+    const posts = hasMore ? result.rows.slice(0, limit) : result.rows;
+
+    return {
+        posts,
+        hasMore,
+        nextCursor: posts.length
+            ? posts[posts.length - 1].created_at
+            : null
+    };
 }
