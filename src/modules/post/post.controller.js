@@ -21,7 +21,8 @@ export const editPost = asyncHandler(async (req, res) => {
 });
 export const getPost = asyncHandler(async (req, res) => {
     const userId = req.user.id;
-    const posts = await postService.getPost(userId);
+    const lastCursor = req.query.lastCursor;
+    const posts = await postService.getPostsByUser(userId, lastCursor);
     return res
         .status(200)
         .json(new ApiResponse(200, 'Posts fetched successfully', posts));
@@ -33,4 +34,11 @@ export const deletePost = asyncHandler(async (req, res) => {
     return res
         .status(200)
         .json(new ApiResponse(200, 'Post deleted successfully', result));
+});
+export const getAllPosts = asyncHandler(async (req, res) => {
+    const lastCursor = req.query.lastCursor;
+    const posts = await postService.getAllPosts(lastCursor);
+    return res
+        .status(200)
+        .json(new ApiResponse(200, 'Posts fetched successfully', posts));
 });
