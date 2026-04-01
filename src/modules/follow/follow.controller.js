@@ -14,3 +14,18 @@ export const sendRequestToFollow = asyncHandler(async (req, res) => {
     const request = await followService.sendRequestToFollow(userId, followingId);
     return res.status(201).json(new ApiResponse(201, 'Request sent successfully', request));
 });
+export const getListOfRequestsToFollow = asyncHandler(async (req, res) => {
+    const userId = req.user.id;
+    const lastCursor = req.query.lastCursor;
+    const requests = await followService.getListOfRequestsToFollow(userId, lastCursor);
+    return res.status(200).json(new ApiResponse(200, 'Requests fetched successfully', requests));
+});
+
+export const updateFollowRequestStatus = asyncHandler(async (req,res) => {
+
+    const requestId = req.params.requestId;
+    const data = req.body;
+    const request = await followService.updateFollowRequestStatus(requestId,data);
+    return res.status(200).json(new ApiResponse(200, 'Request status updated successfully', request));
+});
+
