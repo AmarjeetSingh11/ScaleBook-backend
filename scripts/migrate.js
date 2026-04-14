@@ -10,7 +10,11 @@ const MIGRATIONS_DIR = path.join(__dirname, '..', 'database', 'migrations');
 async function migrate() {
   const files = fs.readdirSync(MIGRATIONS_DIR)
     .filter((f) => f.endsWith('.sql'))
-    .sort();
+    .sort((a, b) => {
+      const na = parseInt(/^(\d+)/.exec(a)?.[1] ?? '0', 10);
+      const nb = parseInt(/^(\d+)/.exec(b)?.[1] ?? '0', 10);
+      return na - nb || a.localeCompare(b);
+    });
 
   for (const file of files) {
     const filePath = path.join(MIGRATIONS_DIR, file);
